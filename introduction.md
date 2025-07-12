@@ -1,131 +1,155 @@
 ---
-title: "Using RMarkdown"
+title: "A first LambdaNative App"
 teaching: 10
-exercises: 2
+exercises: 1
 ---
 
 :::::::::::::::::::::::::::::::::::::: questions 
 
-- How do you write a lesson using R Markdown and `{sandpaper}`?
+- How do you create a LambdaNative Application?
 
 ::::::::::::::::::::::::::::::::::::::::::::::::
 
 ::::::::::::::::::::::::::::::::::::: objectives
 
-- Explain how to use markdown with the new lesson template
-- Demonstrate how to include pieces of code, figures, and nested challenge blocks
+- Create a LambdaNative Application
 
 ::::::::::::::::::::::::::::::::::::::::::::::::
 
-## Introduction
+## Steps
 
-This is a lesson created via The Carpentries Workbench. It is written in
-[Pandoc-flavored Markdown](https://pandoc.org/MANUAL.txt) for static files and
-[R Markdown][r-markdown] for dynamic files that can render code into output. 
-Please refer to the [Introduction to The Carpentries 
-Workbench](https://carpentries.github.io/sandpaper-docs/) for full documentation.
+Make your own copy of the
+[template repository](https://github.com/bkmgit/LambdaNativeQuickStart)
 
-What you need to know is that there are three sections required for a valid
-Carpentries lesson template:
+Wait for the build to complete, check the build output.  Download
+the Android apk file that has been built. Install it on your Android
+device and try to run it.  You will need to unzip it first and may
+need to enable developer permissions on your Android device to be
+able to install the apk file directly.
 
- 1. `questions` are displayed at the beginning of the episode to prime the
-    learner for the content.
- 2. `objectives` are the learning objectives for an episode displayed with
-    the questions.
- 3. `keypoints` are displayed at the end of the episode to reinforce the
-    objectives.
-
-:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: instructor
-
-Inline instructor notes can help inform instructors of timing challenges
-associated with the lessons. They appear in the "Instructor View"
-
-::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-::::::::::::::::::::::::::::::::::::: challenge 
+::::::::::::::::::::::::::::::::::::: challenge
 
 ## Challenge 1: Can you do it?
 
-What is the output of this command?
+The workflow builds a demonstration calculator application. What other
+applications are available in the
+[LambdaNative apps folder](https://github.com/part-cw/lambdanative/tree/master/apps)?
 
-```r
-paste("This", "new", "lesson", "looks", "good")
-```
-
-:::::::::::::::::::::::: solution 
-
-## Output
- 
-```output
-[1] "This new lesson looks good"
-```
-
-:::::::::::::::::::::::::::::::::
+Which of these applications are listed in the
+[LambdaNative README](https://github.com/part-cw/lambdanative/blob/master/README.md)
+as demonstration programs?
 
 
-## Challenge 2: how do you nest solutions within challenge blocks?
+:::::::::::::::::::::::: solution
 
-:::::::::::::::::::::::: solution 
-
-You can add a line with at least three colons and a `solution` tag.
+The Calculator, LineDrop and uSquish applications are listed as demonstration
+applications
 
 :::::::::::::::::::::::::::::::::
+
+
 ::::::::::::::::::::::::::::::::::::::::::::::::
 
-## Figures
 
-You can also include figures generated from R Markdown:
+::::::::::::::::::::::::::::::::::::: challenge
+
+## Challenge 2: Can you do it?
+
+Modify the workflow to build one of the other demonstration applications.
 
 
-``` r
-pie(
-  c(Sky = 78, "Sunny side of pyramid" = 17, "Shady side of pyramid" = 5), 
-  init.angle = 315, 
-  col = c("deepskyblue", "yellow", "yellow3"), 
-  border = FALSE
+:::::::::::::::::::::::: solution
+
+Within `.github/workflows/build.yml` replace `./configure Calculator` with either
+`./configure LineDrop` or `./configure uSquish`.
+
+:::::::::::::::::::::::::::::::::
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::
+
+Update `HelloLambdaNative/main.scm` to contain:
+
+```scheme
+;; SPDX identifier MIT
+
+;; hello LambdaNative example
+
+(define gui #f)
+(define introdisplay #f)
+
+(main
+;; initialization
+  (lambda (w h)
+    (make-window 320 480)
+    (glgui-orientation-set! GUI_PORTRAIT)
+    (set! gui (make-glgui))
+    (let* ((w (glgui-width-get))
+           (h (glgui-height-get)))
+    (set! introdisplay (glgui-label gui 5 (- h 80) (- w 10) 60 "Hello World!" ascii_14.fnt Green))
+    (glgui-widget-set! gui introdisplay 'align GUI_ALIGNCENTER)
+    (glgui-widget-set! gui introdisplay 'hidden #f))
+;; events
+  (lambda (t x y) 
+    (if (= t EVENT_KEYPRESS) (begin 
+      (if (= x EVENT_KEYESCAPE) (terminate))))
+    (glgui-event gui t x y))
+;; termination
+  (lambda () #t)
+;; suspend
+  (lambda () (glgui-suspend))
+;; resume
+  (lambda () (glgui-resume))
 )
+
+;; eof
 ```
 
-<div class="figure" style="text-align: center">
-<img src="fig/introduction-rendered-pyramid-1.png" alt="pie chart illusion of a pyramid"  />
-<p class="caption">Sun arise each and every morning</p>
-</div>
+Modify  `.github/workflows/build.yml` to replace
 
-Or you can use standard markdown for static figures with the following syntax:
+```yaml
+    - name: linux builds
+      working-directory: lambdanative
+      run: |
+       ./configure Calculator
+       make
+    - name: android builds
+      working-directory: lambdanative
+      run: |
+       # Fedora only provides Python3
+       sed -i 's/python/python3/g' targets/android/check-tools
+       # Make directory to avoid errors during build
+       mkdir -p /home/build/.cache/lambdanative/android/support
+       ./configure Calculator android debug
+       make
+```
 
-`![optional caption that appears below the figure](figure url){alt='alt text for
-accessibility purposes'}`
+by
 
-![You belong in The Carpentries!](https://raw.githubusercontent.com/carpentries/logo/master/Badge_Carpentries.svg){alt='Blue Carpentries hex person logo with no text.'}
+```yaml
+    - name: copy source
+      run: |
+       cp -r HelloLambdaNative lambdanative/apps
+    - name: android builds
+      working-directory: lambdanative
+      run: |
+       # Fedora only provides Python3
+       sed -i 's/python/python3/g' targets/android/check-tools
+       # Make directory to avoid errors during build
+       mkdir -p /home/build/.cache/lambdanative/android/support
+       ./configure HelloLambdaNative android debug
+       make
+```
 
-::::::::::::::::::::::::::::::::::::: callout
-
-Callout sections can highlight information.
-
-They are sometimes used to emphasise particularly important points
-but are also used in some lessons to present "asides": 
-content that is not central to the narrative of the lesson,
-e.g. by providing the answer to a commonly-asked question.
-
-::::::::::::::::::::::::::::::::::::::::::::::::
+Wait for the pipeline to complete and then download the artifact
+and try to run it.
 
 
-## Math
-
-One of our episodes contains $\LaTeX$ equations when describing how to create
-dynamic reports with {knitr}, so we now use mathjax to describe this:
-
-`$\alpha = \dfrac{1}{(1 - \beta)^2}$` becomes: $\alpha = \dfrac{1}{(1 - \beta)^2}$
-
-Cool, right?
 
 ::::::::::::::::::::::::::::::::::::: keypoints 
 
-- Use `.md` files for episodes when you want static content
-- Use `.Rmd` files for episodes when you need to generate output
-- Run `sandpaper::check_lesson()` to identify any issues with your lesson
-- Run `sandpaper::build_lesson()` to preview your lesson locally
+- It is possible to use the cloud to build an Android application
+- The LambdaNative framework enables rapid application development
 
 ::::::::::::::::::::::::::::::::::::::::::::::::
 
-[r-markdown]: https://rmarkdown.rstudio.com/
